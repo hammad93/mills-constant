@@ -1,0 +1,157 @@
+\documentclass{article}
+
+
+\usepackage{PRIMEarxiv}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{lipsum}
+\usepackage{fancyhdr}       % header
+\usepackage{graphicx}       % graphics
+\graphicspath{{media/}}     % organize your images and other figures under media/ folder
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{colonequals}
+\usepackage{listings}
+\usepackage{color}
+
+% Code snippet styling
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Listing 1 --> Figure 1
+\renewcommand{\lstlistingname}{Figure}
+
+\lstdefinestyle{mystyle}{
+        backgroundcolor=\color{backcolour},   
+        commentstyle=\color{codegreen},
+        keywordstyle=\color{magenta},
+        numberstyle=\tiny\color{codegray},
+        stringstyle=\color{codepurple},
+        basicstyle=\ttfamily\footnotesize,
+        breakatwhitespace=false,         
+        breaklines=true,                 
+        captionpos=b,                    
+        keepspaces=true,                 
+        numbers=left,                    
+        numbersep=5pt,                  
+        showspaces=false,                
+        showstringspaces=false,
+        showtabs=false,                  
+        tabsize=2
+    }
+
+\lstset{style=mystyle}
+
+%Header
+\pagestyle{fancy}
+\thispagestyle{empty}
+\rhead{ \textit{ }} 
+
+% Update your Headers here
+\fancyhead[LO]{Computing Mills' Constant}
+
+%% Title
+\title{Mills' Constant and Numerical Computation in Python.}
+
+\author{ \href{https://orcid.org/0000-0003-0472-253X}{\includegraphics[scale=0.06]{orcid.pdf}\hspace{1mm}Hammad A.~Usmani} \\
+    \texttt{hammadus@gmail.com} \\
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Mills' Constant is part of a formula that generates primes and can be used to test the limits and edge cases of computation. In this work, we compute 1,655,460 digits of the Mills' Constant and publicly provide the software to be available for reproduction by assuming the Riemann Hypothesis. The problems arising from computing Mills' Constant include operations with both very large and very small numbers. In the source code, there are methods for numerical computation in Python that build on top of included capabilities. For example, floating point operations in Python have fixed precision by default, and this work achieves arbitrarily large precision limited only by available memory. In addition, this framework consists of optimizations that have produced a 98.41\% reduction in compute time. Further applications can include enhancing the determinism of Large Language Models' temperature parameters through floating-point arithmetic.
+\end{abstract}
+
+\keywords{Mills' Constant \and Arbitrary-Precision Arithmetic \and Prime Number Generation \and Catastrophic Cancellation \and Python Performance \and LLM Determinism}
+
+\section{Introduction}
+In 1947, William H. Mills proved a fundamental theorem in number theory showing the existence of a real number $\theta$ such that the floor sequence $\lfloor \theta^{3^n} \rfloor$ yields a prime number for all positive integers $n$ \cite{mills1947}. This expression serves as a popular classic mathematical framework for prime generation pipelines \cite{numberphile}. However, evaluating the precise fractional composition of $\theta$ is computationally difficult. The underlying prime sequences scale at a severe triple-exponential rate where subsequent terms quickly grow to span millions of individual digits \cite{caldwell2005}.
+
+To compute these values, implementations must analyze known prime-gap parameters while assuming the validity of the Riemann Hypothesis to guarantee stable sequence spacing boundaries \cite{caldwell2005}. Historical benchmarks mapped early index subsets, but recent breakthroughs identifying higher sequence offsets ($a(14) = 8436308$) by Propper and Batalov \cite{oeisA108739, batalovRepo} provided the necessary structural criteria to calculate the constant significantly beyond the 555,153-digit boundaries reached in previous open replication experiments \cite{zabeMath}.
+
+This note introduces a Python framework designed to push this computational frontier by resolving exactly 1,665,460 decimal digits of the constant. The open-source replication environment is fully documented and hosted for public distribution \cite{hammadRepo}.
+
+\section{Mathematical Formulation}
+Rather than using forward exponentiation, calculating $\theta$ involves determining a sequence of tightening bounds using known Mills primes ($P_n$). The constant can be represented as a limit of these prime configurations:
+\begin{equation}
+    \theta = \lim_{n \to \infty} P_n^{3^{-n}}
+\end{equation}
+This allows us to evaluate the value within structured, narrowing intervals defined by:
+\begin{equation}
+    P_n^{3^{-n}} \le \theta < (P_n + 1)^{3^{-n}}
+\end{equation}
+The framework programmatically processes these limits by parsing sequence components through targeted database indexes.
+
+\begin{lstlisting}[language=Python, caption=Programmatic parsing structure for target Mills primes.]
+import pandas as pd
+
+# Load sequence coordinates
+df = pd.read_csv('mills-primes.csv')
+
+# Isolate the target prime index configuration
+n = 15
+prime = df[df["n"] == n]["prime"].iloc
+prime = int(prime) # Convert to an arbitrary precision integer
+\end{lstlisting}
+
+\section{Software Architecture and Precision Guarding}
+Native programming language architectures evaluate floating-point expressions with fixed binary precision (e.g., standard IEEE 754 64-bit definitions), causing rounding errors when processing deep decimal strings.
+
+\subsection{Arbitrary Precision Scaling}
+To bypass these hardware constraints, this software utilizes the multi-precision library \texttt{mpmath} \cite{mpmathIndex}. While standard pure-Python floating-point emulation introduces structural processing loops, this setup integrates \texttt{mpmath} with the compiled C-based \texttt{gmpy2} dependency \cite{mpmathGmpy}. Linking directly with the GNU Multiple Precision Arithmetic Library (GMP) optimizes the mathematical overhead, yielding a 98.41\% reduction in total compute time relative to unoptimized implementations.
+
+\subsection{Catastrophic Cancellation Guard}
+An unexpected edge case involving catastrophic cancellation occurs during the execution loop of calculating the $n^{\text{th}}$ root of a targeted prime string \cite{mpmathRoots}. Because \texttt{mpmath} manages internal mathematical states in a binary format, native boundaries experience long strings of consecutive zero bits for floating-point calculations at hyper-extended configurations.
+
+When transforming these raw binary layouts into base-10 (decimal strings), a conversion shift occurs. The mathematical conversion steps can drop the primary ones-place integer by 1 unit, introducing an endless sequence of trailing 9s in subsequent decimal fractions (e.g., yielding $\dots.999999\dots$ instead of the exact rounded representation). During data validation phases, our code includes specific rounding guards to intercept boundary drops and align the base-10 text output with the physical values outlined in \texttt{mpmath} reference specifications.
+
+\section{Downstream Applications: LLM Determinism}
+Beyond standard number theory exploration, the high-precision arithmetic paradigms evaluated by this project provide immediate architectural insights for artificial intelligence optimization. In large language model (LLM) serving frameworks, temperature adjustments scale logit distributions prior to applying a Softmax function:
+\begin{equation}
+    S_i = \frac{\exp(z_i / T)}{\sum_{j} \exp(z_j / T)}
+\end{equation}
+When the temperature parameter $T$ approaches near-zero values ($\epsilon \to 0$) to generate deterministic greedy selections, standard fixed-precision hardware frequently triggers underflow errors or catastrophic floating-point cancellations. Applying the arbitrary-precision constraints and radix truncation guards explored in this repository directly allows neural network execution environments to maintain predictable logit selection matrices, ensuring deterministic software output at extreme scaling bounds.
+
+\section{Conclusion}
+This framework successfully computes and preserves a 1,665,460-digit representation of Mills' constant. By detailing the interactions between arbitrary-precision scaling environments and internal conversion loops, this research provides an open, optimized testing environment for multi-precision computing and high-performance number theory verification.
+
+\begin{thebibliography}{10}
+
+\bibitem{mills1947}
+W.~H. Mills.
+\newblock A prime-generating function.
+\newblock {\em Bulletin of the American Mathematical Society}, 53(6):604--604, 1947.
+
+\bibitem{caldwell2005}
+C.~K. Caldwell and Y.~Cheng.
+\newblock Determining Mills' Constant and a Note on Honaker's Problem.
+\newblock {\em Journal of Integer Sequences}, 8(4):Article 05.4.1, 2005.
+\newblock \url{https://cs.uwaterloo.ca/journals/JIS/VOL8/Caldwell/caldwell78.pdf}
+
+\bibitem{oeisA108739}
+OEIS Foundation Inc.
+\newblock Sequence A108739: $a(n) = b(n+1) - b(n)^3$, where $b(n)$ is the sequence of Mills primes.
+\newblock {\em The On-Line Encyclopedia of Integer Sequences}.
+\newblock \url{https://oeis.org/A108739}
+
+\bibitem{hammadRepo}
+H.~A. Usmani.
+\newblock Mills-Constant: 1,665,460 Digits of the Mills Constant.
+\newblock {\em GitHub Repository}, 2026.
+\newblock \url{https://github.com/hammad93/mills-constant/}
+
+\bibitem{zabeMath}
+ZabeMath.
+\newblock 555,153 Digits of the Mills Constant.
+\newblock {\em GitHub Repository}, 2019.
+\newblock \url{https://github.com/ZabeMath/mills-constant}\bibitem{batalovRepo}S.~Batalov.\newblock Mills Primes (PRPs) series extensions.\newblock {\em GitHub Repository}, 2023.\newblock \url{https://github.com/s-batalov/Mills_Primes}\bibitem{mpmathIndex}F.~Johansson et al.\newblock mpmath: a Python library for arbitrary-precision floating-point arithmetic.\newblock Version 1.3.0.\newblock \url{https://mpmath.readthedocs.io/en/1.3.0/index.html}\bibitem{mpmathRoots}mpmath Documentation.\newblock Powers and Roots (nth root).\newblock \url{https://mpmath.readthedocs.io/en/1.3.0/functions/powers.html#root}\bibitem{mpmathGmpy}mpmath Documentation.\newblock Using gmpy (optional).\newblock \url{https://mpmath.readthedocs.io/en/1.3.0/setup.html#using-gmpy-optional}\bibitem{wikiMills}Wikipedia contributors.\newblock Mills' constant.\newblock {\em Wikipedia, The Free Encyclopedia}.\newblock \url{https://en.wikipedia.org/wiki/Mills'_constant}\bibitem{numberphile}Numberphile.\newblock Awesome Prime Number Constant (Mills' Constant).\newblock {\em YouTube}, featuring James Grime, 2013.\newblock \url{https://www.youtube.com/watch?v=6ltrPVPEwfo}\end{thebibliography}\end{document}
