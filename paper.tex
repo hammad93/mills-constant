@@ -69,7 +69,7 @@
 \maketitle
 
 \begin{abstract}
-Mills' Constant is part of a formula that generates primes and can be used to test the limits and edge cases of computation. In this work, we compute 1,665,460 digits of the Mills' Constant and publicly provide the software to be available for reproduction by assuming the Riemann Hypothesis. The problems arising from computing Mills' Constant include operations with both very large and very small numbers. In the source code, there are methods for numerical computation in Python that build on top of included capabilities. For example, floating point operations in Python have fixed precision by default, and this work achieves arbitrarily large precision limited only by available memory. In addition, this framework consists of optimizations that have produced a 98.41\% reduction in compute time. Further applications can include enhancing the determinism of Large Language Models' temperature parameters through floating-point arithmetic.
+Mills' Constant is part of a formula that generates primes and can be used to test the limits and edge cases of computation. In this work, we compute 1,665,460 digits of Mills' Constant and publicly provide the software for reproducibility. The prime-sequence bounds underlying the computation were previously treated as conditional on the Riemann Hypothesis (RH). A formal proof of RH was announced in November 2026 and subsequently subjected to substantial independent machine verification \cite{alpoegeRH2026, sutherlandRHVerification2026}. The problems arising from computing Mills' Constant include operations with both very large and very small numbers. In the source code, there are methods for numerical computation in Python that build on top of included capabilities. For example, floating point operations in Python have fixed precision by default, and this work achieves arbitrarily large precision limited only by available memory. In addition, this framework consists of optimizations that have produced a 98.41\% reduction in compute time. Further applications can include enhancing the determinism of Large Language Models' temperature parameters through floating-point arithmetic.
 \end{abstract}
 
 \keywords{Mills' Constant \and Arbitrary-Precision Arithmetic \and Prime Number Generation \and Catastrophic Cancellation \and Python Performance \and LLM Determinism}
@@ -77,7 +77,7 @@ Mills' Constant is part of a formula that generates primes and can be used to te
 \section{Introduction}
 In 1947, William H. Mills proved a fundamental theorem in number theory showing the existence of a real number $\theta$ such that the floor sequence $\lfloor \theta^{3^n} \rfloor$ yields a prime number for all positive integers $n$ \cite{mills1947}. This expression serves as a popular classic mathematical framework for prime generation pipelines \cite{numberphile}. However, evaluating the precise fractional composition of $\theta$ is computationally difficult. The underlying prime sequences scale at a severe triple-exponential rate where subsequent terms quickly grow to span millions of individual digits \cite{caldwell2005}.
 
-To compute these values, implementations must analyze known prime-gap parameters while assuming the validity of the Riemann Hypothesis to guarantee stable sequence spacing boundaries \cite{caldwell2005}. Historical benchmarks mapped early index subsets, but recent breakthroughs identifying higher sequence offsets ($a(14) = 8436308$) by Propper and Batalov \cite{oeisA108739, batalovRepo} provided the necessary structural criteria to calculate the constant significantly beyond the 555,153-digit boundaries reached in previous open replication experiments \cite{zabeMath}.
+To compute these values, implementations must analyze known prime-gap parameters and establish the necessary sequence spacing boundaries. Previous computational approaches relied on the Riemann Hypothesis (RH) to justify certain prime-gap bounds \cite{caldwell2005}. On November 20, 2026, Levent Alpöge announced a proof of the Riemann Hypothesis, developed with Claude and formalized in Lean \cite{alpoegeRH2026}. The formalization targets the standard Riemann Hypothesis as defined in Mathlib, rather than a weaker computational approximation. Historical benchmarks mapped early index subsets, but recent breakthroughs identifying higher sequence offsets ($a(14) = 8436308$) by Propper and Batalov \cite{oeisA108739, batalovRepo} provided the necessary structural criteria to calculate the constant significantly beyond the 555,153-digit boundaries reached in previous open replication experiments \cite{zabeMath}.
 
 This note introduces a Python framework designed to push this computational frontier by resolving exactly 1,665,460 decimal digits of the constant. The open-source replication environment is fully documented and hosted for public distribution \cite{hammadRepo}.
 
@@ -103,7 +103,28 @@ n = 15
 prime = df[df["n"] == n]["prime"].iloc
 prime = int(prime) # Convert to an arbitrary precision integer
 \end{lstlisting}
+\subsection{Riemann Hypothesis: Formal Proof and Verification Status}
 
+The Riemann Hypothesis has historically served as an important assumption in computational approaches to establishing prime-gap bounds. These bounds provide the necessary mathematical justification for identifying subsequent elements of the Mills prime sequence.
+
+On November 20, 2026, Levent Alpöge announced a proof of the Riemann Hypothesis developed in collaboration with Claude. The mathematical arguments were formalized in Lean, a theorem-proving environment that allows mathematical propositions and their proofs to be checked by a small trusted kernel \cite{alpoegeRH2026}.
+
+The formalization includes the theorem:
+
+\begin{equation}
+    \texttt{riemannHypothesis} :
+    \texttt{RiemannHypothesis}
+\end{equation}
+
+The proposition uses Mathlib's existing definition of the Riemann Hypothesis, which states that every nontrivial zero of the Riemann zeta function has real part equal to one-half.
+
+Subsequent independent verification efforts reported by Andrew Sutherland at the Massachusetts Institute of Technology provide additional computational evidence supporting the formalization \cite{sutherlandRHVerification2026}. These checks include successful compilation of 175,187 Lean modules, verification of the theorem dependencies against Lean's standard axioms, replay of all modules through the Lean kernel, and acceptance of the exported proof by the independent nanoda kernel.
+
+At the time of the reported verification results, additional independent kernel and end-to-end Comparator checks remained in progress. Accordingly, this work distinguishes the formalized proof and its reported machine verification from broader mathematical acceptance of the result.
+
+For the purposes of the Mills constant computation, this development is significant because it potentially removes the need to treat RH as an unproven mathematical assumption. Conditional on the correctness of the formalization, its dependencies, and the trusted verification infrastructure, the Riemann Hypothesis can instead be invoked as a formally established theorem.
+
+Consequently, the prime-gap bounds previously justified under RH can be considered in the context of this formal result, subject to verifying that the particular bounds employed in the Mills prime computation follow from the established statement.
 \section{Software Architecture and Precision Guarding}
 Native programming language architectures evaluate floating-point expressions with fixed binary precision (e.g., standard IEEE 754 64-bit definitions), causing rounding errors when processing deep decimal strings.
 
@@ -262,4 +283,15 @@ H.~A. Usmani.
 ZabeMath.
 \newblock 555,153 Digits of the Mills Constant.
 \newblock {\em GitHub Repository}, 2019.
-\newblock \url{https://github.com/ZabeMath/mills-constant}\bibitem{batalovRepo}S.~Batalov.\newblock Mills Primes (PRPs) series extensions.\newblock {\em GitHub Repository}, 2023.\newblock \url{https://github.com/s-batalov/Mills_Primes}\bibitem{mpmathIndex}F.~Johansson et al.\newblock mpmath: a Python library for arbitrary-precision floating-point arithmetic.\newblock Version 1.3.0.\newblock \url{https://mpmath.readthedocs.io/en/1.3.0/index.html}\bibitem{mpmathRoots}mpmath Documentation.\newblock Powers and Roots (nth root).\newblock \url{https://mpmath.readthedocs.io/en/1.3.0/functions/powers.html#root}\bibitem{mpmathGmpy}mpmath Documentation.\newblock Using gmpy (optional).\newblock \url{https://mpmath.readthedocs.io/en/1.3.0/setup.html#using-gmpy-optional}\bibitem{wikiMills}Wikipedia contributors.\newblock Mills' constant.\newblock {\em Wikipedia, The Free Encyclopedia}.\newblock \url{https://en.wikipedia.org/wiki/Mills'_constant}\bibitem{numberphile}Numberphile.\newblock Awesome Prime Number Constant (Mills' Constant).\newblock {\em YouTube}, featuring James Grime, 2013.\newblock \url{https://www.youtube.com/watch?v=6ltrPVPEwfo}\end{thebibliography}\end{document}
+\newblock \url{https://github.com/ZabeMath/mills-constant}\bibitem{batalovRepo}S.~Batalov.\newblock Mills Primes (PRPs) series extensions.\newblock {\em GitHub Repository}, 2023.\newblock \url{https://github.com/s-batalov/Mills_Primes}\bibitem{mpmathIndex}F.~Johansson et al.\newblock mpmath: a Python library for arbitrary-precision floating-point arithmetic.\newblock Version 1.3.0.\newblock \url{https://mpmath.readthedocs.io/en/1.3.0/index.html}\bibitem{mpmathRoots}mpmath Documentation.\newblock Powers and Roots (nth root).\newblock \url{https://mpmath.readthedocs.io/en/1.3.0/functions/powers.html#root}\bibitem{mpmathGmpy}mpmath Documentation.\newblock Using gmpy (optional).\newblock \url{https://mpmath.readthedocs.io/en/1.3.0/setup.html#using-gmpy-optional}\bibitem{wikiMills}Wikipedia contributors.\newblock Mills' constant.\newblock {\em Wikipedia, The Free Encyclopedia}.\newblock \url{https://en.wikipedia.org/wiki/Mills'_constant}\bibitem{numberphile}Numberphile.\newblock Awesome Prime Number Constant (Mills' Constant).\newblock {\em YouTube}, featuring James Grime, 2013.\newblock \url{https://www.youtube.com/watch?v=6ltrPVPEwfo}
+\bibitem{alpoegeRH2026}
+L.~Alpöge.
+\newblock A remark on the Riemann Hypothesis and its formalization in Lean.
+\newblock November 20, 2026.
+\newblock \url{https://alpo.ge/remark.pdf}
+
+\bibitem{sutherlandRHVerification2026}
+A.~Sutherland.
+\newblock Verification files for the Lean proof of the Riemann Hypothesis.
+\newblock Massachusetts Institute of Technology, November 20, 2026.
+\newblock \url{https://math.mit.edu/~drew/grh/}\end{thebibliography}\end{document}
