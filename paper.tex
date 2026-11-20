@@ -100,7 +100,7 @@ df = pd.read_csv('mills-primes.csv')
 
 # Isolate the target prime index configuration
 n = 15
-prime = df[df["n"] == n]["prime"].iloc
+prime = df[df["n"] == n]["prime"].iloc[0]
 prime = int(prime) # Convert to an arbitrary precision integer
 \end{lstlisting}
 \subsection{Riemann Hypothesis: Formal Proof and Verification Status}
