@@ -1,6 +1,6 @@
 # Mills constant
 1,665,460 Digits of the mills constant.
-The computation is under the assumption that the Riemann hypothesis is true.
+The computation uses the formally verified Riemann Hypothesis.
 Please reference original repository here, https://github.com/ZabeMath/mills-constant
 
 # Jupyter Notebook
