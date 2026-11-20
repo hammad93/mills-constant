@@ -56,7 +56,7 @@
 \rhead{ \textit{ }} 
 
 % Update your Headers here
-\fancyhead[LO]{Computing Mills' Constant}
+\fancyhead[LO]{Mills' Constant and Numerical Computation in Python.}
 
 %% Title
 \title{Mills' Constant and Numerical Computation in Python.}
@@ -69,7 +69,7 @@
 \maketitle
 
 \begin{abstract}
-Mills' Constant is part of a formula that generates primes and can be used to test the limits and edge cases of computation. In this work, we compute 1,655,460 digits of the Mills' Constant and publicly provide the software to be available for reproduction by assuming the Riemann Hypothesis. The problems arising from computing Mills' Constant include operations with both very large and very small numbers. In the source code, there are methods for numerical computation in Python that build on top of included capabilities. For example, floating point operations in Python have fixed precision by default, and this work achieves arbitrarily large precision limited only by available memory. In addition, this framework consists of optimizations that have produced a 98.41\% reduction in compute time. Further applications can include enhancing the determinism of Large Language Models' temperature parameters through floating-point arithmetic.
+Mills' Constant is part of a formula that generates primes and can be used to test the limits and edge cases of computation. In this work, we compute 1,665,460 digits of the Mills' Constant and publicly provide the software to be available for reproduction by assuming the Riemann Hypothesis. The problems arising from computing Mills' Constant include operations with both very large and very small numbers. In the source code, there are methods for numerical computation in Python that build on top of included capabilities. For example, floating point operations in Python have fixed precision by default, and this work achieves arbitrarily large precision limited only by available memory. In addition, this framework consists of optimizations that have produced a 98.41\% reduction in compute time. Further applications can include enhancing the determinism of Large Language Models' temperature parameters through floating-point arithmetic.
 \end{abstract}
 
 \keywords{Mills' Constant \and Arbitrary-Precision Arithmetic \and Prime Number Generation \and Catastrophic Cancellation \and Python Performance \and LLM Determinism}
@@ -114,6 +114,114 @@ To bypass these hardware constraints, this software utilizes the multi-precision
 An unexpected edge case involving catastrophic cancellation occurs during the execution loop of calculating the $n^{\text{th}}$ root of a targeted prime string \cite{mpmathRoots}. Because \texttt{mpmath} manages internal mathematical states in a binary format, native boundaries experience long strings of consecutive zero bits for floating-point calculations at hyper-extended configurations.
 
 When transforming these raw binary layouts into base-10 (decimal strings), a conversion shift occurs. The mathematical conversion steps can drop the primary ones-place integer by 1 unit, introducing an endless sequence of trailing 9s in subsequent decimal fractions (e.g., yielding $\dots.999999\dots$ instead of the exact rounded representation). During data validation phases, our code includes specific rounding guards to intercept boundary drops and align the base-10 text output with the physical values outlined in \texttt{mpmath} reference specifications.
+\section{Computational Verification and Numerical Validation}
+
+To validate the reconstructed decimal representation of Mills' constant, we implemented a numerical verification procedure based on the subsequent terms of the Mills prime sequence. Rather than relying exclusively on comparing the reconstructed constant against an existing decimal representation, this approach evaluates whether the calculated approximation satisfies the expected relationship with the next element in the sequence.
+
+\subsection{Reconstruction of the Known Constant}
+
+Let the Mills prime sequence be defined recursively as:
+
+\begin{equation}
+    b_{n+1} = b_n^3 + a_n
+\end{equation}
+
+where $b_1 = 2$ and $a_n$ represents the corresponding extension values from OEIS A108739 \cite{oeisA108739}.
+
+Given a known sequence of Mills primes, the constant can be approximated by isolating it from:
+
+\begin{equation}
+    b_n = \lfloor A^{3^n} \rfloor
+\end{equation}
+
+For the reconstruction, we calculate:
+
+\begin{equation}
+    \widehat{A}_n = \sqrt[3^n]{b_n}
+\end{equation}
+
+This calculation is performed using the arbitrary-precision \texttt{mpmath.nthroot()} implementation. The internal decimal precision is dynamically configured based on the length of the subsequent Mills prime, with an additional 1,000 guard digits to reduce numerical rounding errors.
+
+\subsection{Subsequent-Term Verification}
+
+The primary verification mechanism evaluates the reconstructed constant against the next known sequence extension.
+
+Given the approximation $\widehat{A}_n$, we calculate:
+
+\begin{equation}
+    X = \widehat{A}_n^{3^{n+1}}
+\end{equation}
+
+The expected subsequent Mills prime is:
+
+\begin{equation}
+    b_{n+1} = b_n^3 + a_n
+\end{equation}
+
+Consequently, the verification evaluates:
+
+\begin{equation}
+    D = \left\lfloor b_{n+1} - (X + a_n) \right\rfloor
+\end{equation}
+
+A successful verification requires:
+
+\begin{equation}
+    D = 0
+\end{equation}
+
+This condition establishes that the computed subsequent power, after accounting for the known sequence extension, falls within the expected unit interval below the subsequent Mills prime. In particular, it checks that:
+
+\begin{equation}
+    b_n^3 - 1 < X \leq b_n^3
+\end{equation}
+
+The test therefore provides a numerical consistency check against an additional known sequence term rather than simply reproducing the original input used to calculate the constant.
+
+\subsection{Experimental Results}
+
+Two separate reconstruction and verification experiments were performed.
+
+\begin{table}[ht]
+\centering
+\caption{Computational reconstruction and subsequent-term verification results.}
+\label{tab:mills-verification}
+\begin{tabular}{lrr}
+\toprule
+ & Reconstruction 1 & Reconstruction 2 \\
+\midrule
+Sequence index ($n$) & 13 & 14 \\
+Target prime & $b_{13}$ & $b_{14}$ \\
+Verification prime & $b_{14}$ & $b_{15}$ \\
+Internal decimal precision & 556,154 & 1,666,461 \\
+Additional guard digits & 1,000 & 1,000 \\
+Verification result & Successful & Successful \\
+Execution time (minutes) & 0.08 & 0.58 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The first experiment reconstructs Mills' constant using the thirteenth sequence term and verifies the result against the fourteenth term. This reproduces the previously published 555,153-digit computation.
+
+The second experiment extends the reconstruction to the fourteenth sequence term and verifies it against the fifteenth term. The additional sequence extension provides a further numerical consistency check and enables the computation to extend beyond the previously available decimal representation.
+
+Both experiments completed successfully, with the verification procedure returning a zero difference in the floor operation.
+
+\subsection{Precision Management and Output Generation}
+
+An important implementation detail concerns the handling of arbitrary-precision numerical representations. The computation retains an additional 1,000 decimal digits internally beyond the precision determined by the subsequent sequence term.
+
+These additional digits serve as guard digits during exponentiation and verification. Following successful verification, the implementation removes the additional precision from the returned decimal representation.
+
+The resulting constants are written to separate output files, \texttt{A\_13.txt} and \texttt{A\_14.txt}, preserving the reconstructed numerical representations for subsequent use.
+
+The verification procedure also addresses an important limitation of arbitrary-precision numerical computation: an internally accurate floating-point result does not necessarily guarantee that its decimal string representation preserves the expected integer boundary. Performing the subsequent-term verification before removing the additional precision helps detect discrepancies introduced by numerical representation and rounding.
+
+\subsection{Scope of Verification}
+
+The experiments demonstrate that the reconstructed approximations satisfy the expected subsequent-term relationships for the supplied Mills prime sequence. They provide computational evidence for the numerical consistency of the resulting representations and demonstrate the practical utility of arbitrary-precision arithmetic for extending the computation.
+
+This verification should be distinguished from an independent primality proof of every sequence element or a formal proof of the Riemann Hypothesis. The procedure validates the numerical reconstruction against the supplied sequence extensions; it does not independently establish the primality of those inputs or the underlying assumptions used to construct the sequence.
 
 \section{Downstream Applications: LLM Determinism}
 Beyond standard number theory exploration, the high-precision arithmetic paradigms evaluated by this project provide immediate architectural insights for artificial intelligence optimization. In large language model (LLM) serving frameworks, temperature adjustments scale logit distributions prior to applying a Softmax function:
