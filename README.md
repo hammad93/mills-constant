@@ -41,4 +41,4 @@ _In no particular order,_
 - https://en.wikipedia.org/wiki/Mills'_constant
 - https://mpmath.readthedocs.io/en/1.3.0/setup.html#using-gmpy-optional
 
-_No generative AI was utilized to create this work._
+_No AI was utilized to formulate the code or calculate results. AI was utilized to assist with this work in other areas._
